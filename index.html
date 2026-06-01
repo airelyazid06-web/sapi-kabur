@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta charset="UTF-8">
+    <title>Sapi Qurban Kabur Simulator</title>
+    <style>
+        * { padding: 0; margin: 0; box-sizing: border-box; }
+        body { 
+            background: #2f3542; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            height: 100vh; 
+            flex-direction: column; 
+            overflow: hidden; 
+            font-family: 'Courier New', Courier, monospace;
+        }
+
+        /* Pembungkus Utama Konten Menu */
+        #menu-container {
+            position: relative;
+            z-index: 100;
+        }
+
+        /* Tampilan Kotak Utama (Login / Leaderboard) */
+        .card-screen {
+            background: #1e222b;
+            padding: 30px;
+            border: 3px solid #fff;
+            border-radius: 8px;
+            text-align: center;
+            color: white;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+            width: 350px;
+        }
+        h2 {
+            margin-bottom: 20px;
+            color: #ffa502;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+        input {
+            padding: 10px;
+            width: 90%;
+            font-size: 16px;
+            border: 2px solid #747d8c;
+            background: #2f3542;
+            color: white;
+            text-align: center;
+            margin-bottom: 15px;
+            outline: none;
+        }
+        input:focus {
+            border-color: #ffa502;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 15px;
+            font-weight: bold;
+            color: #1e222b;
+            border: none;
+            cursor: pointer;
+            text-transform: uppercase;
+            margin: 5px;
+            position: relative;
+            z-index: 110;
+        }
+        .btn-primary { background: #ffa502; }
+        .btn-primary:hover { background: #ff7f50; }
+        .btn-secondary { background: #a4b0be; }
+        .btn-secondary:hover { background: #747d8c; }
+
+        #login-highscore {
+            margin-top: 15px;
+            font-size: 14px;
+            color: #a4b0be;
+            border-top: 1px dashed #747d8c;
+            padding-top: 10px;
+        }
+
+        /* Tampilan Halaman Peringkat (Leaderboard) */
+        #leaderboard-screen {
+            display: none;
+        }
+        #leaderboard-list {
+            text-align: left;
+            margin: 15px 0;
+            background: #2f3542;
+            padding: 10px;
+            border-radius: 4px;
+            max-height: 150px;
+            overflow-y: auto;
+        }
+        .leaderboard-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 5px 0;
+            border-bottom: 1px solid #1e222b;
+            font-size: 14px;
+        }
+        .leaderboard-item:last-child { border: none; }
+
+        /* Area Game */
+        #game-wrapper {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            z-index: 10;
+        }
+
+        #game-container {
+            width: 600px;
+            height: 220px;
+            position: relative;
+            overflow: hidden;
+            background-image: url('pedesaan.png'); 
+            background-size: cover;
+            background-position: bottom; 
+            border: 3px solid #fff;
+        }
+
+        /* Hitbox Sapi */
+        #dino {
+            width: 50px; height: 55px;
+            position: absolute; bottom: 30px; left: 70px;
+            z-index: 15;
+            transition: height 0.1s; 
+        }
+        #dino-img {
+            width: 130px; height: 130px;
+            position: absolute; bottom: -15px; left: -40px;
+            object-fit: contain; transform: scaleX(-1);
+            transition: transform 0.1s, height 0.1s;
+        }
+
+        /* Ketika Sapi Merunduk */
+        .duck { height: 25px !important; }
+        .duck #dino-img {
+            transform: scaleX(-1) scaleY(0.6); 
+            bottom: -35px;
+        }
+
+        /* Rintangan Bawah (Batu) */
+        #cactus {
+            width: 45px; height: 45px;
+            position: absolute; bottom: 30px; left: 580px;
+            z-index: 12;
+            background-image: url('batu.png?v=1'); 
+            background-size: contain;
+            background-repeat: no-repeat;
+        }
+
+        /* Rintangan Atas (Burung) */
+        #bird {
+            width: 45px; height: 45px;
+            position: absolute; bottom: 50px; left: 580px; 
+            z-index: 12;
+            background-image: url('burung.png'); 
+            background-size: contain;
+            background-repeat: no-repeat;
+        }
+
+        .jump { animation: jump 0.55s ease-in-out; }
+        @keyframes jump {
+            0% { bottom: 30px; }
+            45% { bottom: 155px; }
+            55% { bottom: 155px; }
+            100% { bottom: 30px; }
+        }
+
+        h1 { color: white; margin-bottom: 10px; text-transform: uppercase; }
+        #score-board { margin-top: 15px; font-size: 24px; font-weight: bold; color: #fff; text-align: center; }
+        #highscore-board { font-size: 16px; color: #ffa502; margin-top: 5px; }
+        #game-over-text { display: none; color: #ff4757; font-weight: bold; font-size: 20px; margin-top: 15px; text-align: center; }
+        #tutorial { color: #ced6e0; font-size: 14px; margin-top: 5px; }
+        /* Styling tombol mobile */
+#mobile-controls {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    margin-top: 10px;
+    margin-bottom: 10px;
+    width: 100%;
+    position: relative;
+    z-index: 9999; /* Pastikan tombol paling depan */
+}
+
+/* Hanya muncul saat game-wrapper aktif (saat main) */
+#game-wrapper[style*="display: flex"] #mobile-controls {
+    display: flex;
+}
+.btn-mobile {
+    width: 130px;
+    height: 60px;
+    background: #ffa502;
+    border: 3px solid #fff;
+    border-radius: 10px;
+    font-weight: bold;
+    font-size: 16px;
+    cursor: pointer;
+    touch-action: manipulation; /* Biar gak delay di HP */
+    user-select: none;
+    -webkit-tap-highlight-color: transparent; /* Biar gak ada kotak biru saat di-tap */
+}
+/* Muncul hanya di layar HP */
+@media (max-width: 768px) {
+    #mobile-controls { display: flex; }
+}
+    </style>
+</head>
+<body>
+
+    <div id="menu-container">
+        <div id="login-screen" class="card-screen">
+            <h2>Kendali Sapi</h2>
+            <input type="text" id="username-input" placeholder="Nama Peternak..." maxlength="15" autocomplete="off">
+            <br>
+            <button class="btn-primary" onclick="startGame()">Mulai Kabur</button>
+            <button class="btn-secondary" onclick="showLeaderboard()">Peringkat</button>
+            <div id="login-highscore">Top Score Kamu: <span id="login-highscore-val">0</span></div>
+        </div>
+
+        <div id="leaderboard-screen" class="card-screen">
+            <h2>Top Skor Global</h2>
+            <div id="leaderboard-list">
+                </div>
+            <button class="btn-secondary" onclick="hideLeaderboard()">Kembali</button>
+        </div>
+    </div>
+
+<div id="game-wrapper">
+    <div id="game-container">
+        <div id="dino"><img id="dino-img" src="farrel.png" alt="sapi"></div>
+        <div id="cactus"></div>
+        <div id="bird"></div> 
+    </div>
+
+    <div id="mobile-controls">
+        <button class="btn-mobile" id="btn-duck">RUNDUK</button>
+        <button class="btn-mobile" id="btn-jump">LOMPAT</button>
+    </div>
+
+    <div id="score-board">
+        <span id="player-name">Player</span> | Skor: <span id="score">0</span>
+        <div id="highscore-board">Top Score Kamu: <span id="highscore">0</span></div>
+    </div>
+</div>
+        <div id="tutorial">Kontrol: [Spasi] untuk Lompat | [Panah Bawah] untuk Merunduk</div>
+        <div id="game-over-text">GAME OVER!<br>Mengalihkan ke halaman nama...</div>
+    </div>
+
+    <script>
+        const menuContainer = document.getElementById("menu-container");
+        const loginScreen = document.getElementById("login-screen");
+        const leaderboardScreen = document.getElementById("leaderboard-screen");
+        const leaderboardList = document.getElementById("leaderboard-list");
+        const gameWrapper = document.getElementById("game-wrapper");
+        const usernameInput = document.getElementById("username-input");
+        const playerNameDisplay = document.getElementById("player-name");
+
+        const dino = document.getElementById("dino");
+        const cactus = document.getElementById("cactus");
+        const bird = document.getElementById("bird");
+        const scoreDisplay = document.getElementById("score");
+        const highscoreDisplay = document.getElementById("highscore");
+        const loginHighscoreDisplay = document.getElementById("login-highscore-val");
+        const gameOverText = document.getElementById("game-over-text");
+
+        // PENGAMAN AUDIO BARU: Dibuat lewat JS agar tidak mematikan tampilan web jika file tidak ada
+        let bgm, sfxJump, sfxDuck, sfxGameOver;
+        try {
+            bgm = new Audio("bgm.mp3"); bgm.loop = true;
+            sfxJump = new Audio("lompat.mp3");
+            sfxDuck = new Audio("nunduk.mp3");
+            sfxGameOver = new Audio("gameover.mp3");
+        } catch (e) {
+            console.log("Audio gagal diinisialisasi");
+        }
+
+        let score = 0; 
+        let isAlive = false; 
+        let speed = 5; 
+        let activeObstacle = cactus; 
+        let currentPos = 580;
+        let currentUsername = "";
+
+        function getSavedHighscore() {
+            try {
+                return parseInt(localStorage.getItem("sapi_highscore")) || 0;
+            } catch (e) { return 0; }
+        }
+
+        function getSavedLeaderboard() {
+            try {
+                return JSON.parse(localStorage.getItem("sapi_leaderboard")) || [];
+            } catch (e) { return []; }
+        }
+
+        let initialHigh = getSavedHighscore();
+        highscoreDisplay.innerText = initialHigh;
+        loginHighscoreDisplay.innerText = initialHigh;
+
+        function startGame() {
+            currentUsername = usernameInput.value.trim();
+            
+            if (currentUsername === "") {
+                alert("Nama peternak tidak boleh kosong!");
+                return;
+            }
+
+            playerNameDisplay.innerText = currentUsername;
+            menuContainer.style.display = "none";
+            gameWrapper.style.display = "flex";
+            gameOverText.style.display = "none";
+
+            isAlive = true;
+            score = 0;
+            speed = 5;
+            scoreDisplay.innerText = score;
+            highscoreDisplay.innerText = getSavedHighscore();
+
+            // Jalankan audio dengan aman (tidak crash jika file mp3 kosong)
+            try {
+                let audioCtx = window.AudioContext || window.webkitAudioContext;
+                if (audioCtx) {
+                    let context = new audioCtx();
+                    if (context.state === 'suspended') context.resume();
+                }
+                bgm.currentTime = 0;
+                bgm.volume = 0.4; 
+                bgm.play().catch(() => {});
+            } catch(e) {}
+
+            setupInitialPositions();
+            move();
+        }
+
+        function showLeaderboard() {
+            loginScreen.style.display = "none";
+            leaderboardScreen.style.display = "block";
+            
+            let globalScores = getSavedLeaderboard();
+            globalScores.sort((a, b) => b.score - a.score);
+            let topScores = globalScores.slice(0, 5);
+
+            leaderboardList.innerHTML = "";
+            if (topScores.length === 0) {
+                leaderboardList.innerHTML = "<div style='text-align:center;color:#ced6e0;'>Belum ada rekor.</div>";
+            } else {
+                topScores.forEach((item, index) => {
+                    leaderboardList.innerHTML += `
+                        <div class="leaderboard-item">
+                            <span>${index + 1}. ${item.name}</span>
+                            <span style="color:#ffa502;font-weight:bold;">${item.score} Pts</span>
+                        </div>`;
+                });
+            }
+        }
+
+        function hideLeaderboard() {
+            leaderboardScreen.style.display = "none";
+            loginScreen.style.display = "block";
+        }
+
+        function setupInitialPositions() {
+            currentPos = 580;
+            cactus.style.left = currentPos + "px";
+            bird.style.left = "-100px"; 
+            activeObstacle = cactus;
+        }
+
+        function jump() {
+            if (!dino.classList.contains("jump") && !dino.classList.contains("duck") && isAlive) {
+                dino.classList.add("jump");
+                
+                try {
+                    sfxJump.currentTime = 0;
+                    sfxJump.play().catch(() => {});
+                } catch(e) {}
+
+                setTimeout(() => dino.classList.remove("jump"), 550);
+            }
+        }
+
+        document.addEventListener("keydown", (e) => {
+            if (!isAlive) {
+                if (e.key === "Enter" && menuContainer.style.display !== "none" && leaderboardScreen.style.display !== "block") {
+                    startGame();
+                }
+                return;
+            }
+
+            if (e.code === "Space") {
+                jump();
+            }
+            
+            if (e.code === "ArrowDown" && !dino.classList.contains("jump") && !dino.classList.contains("duck")) {
+                dino.classList.add("duck");
+                
+                // Mainkan suara nunduk
+                try {
+                    sfxDuck.currentTime = 0;
+                    sfxDuck.volume = 0.6;
+                    sfxDuck.play().catch(() => {});
+                } catch(e) {}
+            }
+        });
+
+        document.addEventListener("keyup", (e) => {
+            if (!isAlive) return;
+            if (e.code === "ArrowDown") {
+                dino.classList.remove("duck");
+            }
+        });
+
+        function move() {
+            if (!isAlive) return;
+
+            currentPos -= speed;
+            activeObstacle.style.left = currentPos + "px";
+            
+            if (currentPos <= -40) {
+                score++;
+                scoreDisplay.innerText = score;
+                
+                if (speed < 15) speed += 0.3; 
+
+                activeObstacle.style.left = "-100px";
+
+                if (Math.random() < 0.5) {
+                    activeObstacle = cactus;
+                } else {
+                    activeObstacle = bird;
+                }
+
+                currentPos = 580 + Math.floor(Math.random() * 200);
+                activeObstacle.style.left = currentPos + "px";
+            }
+
+            let dBottom = parseInt(window.getComputedStyle(dino).getPropertyValue("bottom"));
+
+            if (currentPos < 110 && currentPos > 70) {
+                if (activeObstacle === cactus) {
+                    if (dBottom <= 70) endGame();
+                } else {
+                    if (!dino.classList.contains("duck")) endGame();
+                }
+            }
+
+            if (isAlive) {
+                requestAnimationFrame(move);
+            }
+        }
+
+        function endGame() {
+            isAlive = false;
+            gameOverText.style.display = "block";
+
+            try {
+                bgm.pause();
+                sfxGameOver.currentTime = 0;
+                sfxGameOver.play().catch(() => {});
+            } catch(e) {}
+
+            let globalScores = getSavedLeaderboard();
+            globalScores.push({ name: currentUsername, score: score });
+            
+            let currentHigh = getSavedHighscore();
+            if (score > currentHigh) {
+                currentHigh = score;
+            }
+
+            try {
+                localStorage.setItem("sapi_highscore", currentHigh);
+                localStorage.setItem("sapi_leaderboard", JSON.stringify(globalScores));
+            } catch (e) {}
+
+            highscoreDisplay.innerText = currentHigh;
+            loginHighscoreDisplay.innerText = currentHigh;
+
+            setTimeout(() => {
+                gameWrapper.style.display = "none";
+                menuContainer.style.display = "block";
+                loginScreen.style.display = "block";
+                leaderboardScreen.style.display = "none";
+                usernameInput.value = ""; 
+                usernameInput.focus();
+            }, 1500);
+        }
+    </script>
+    <script src="mobile-controls.js"></script>
+</body>
+</html>
